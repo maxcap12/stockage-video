@@ -1,3 +1,5 @@
+import time
+
 from PIL import Image
 import cv2
 import os
@@ -18,19 +20,18 @@ BIN = {
 
 
 def get_bits(path: str):
-    content = ""
-    buffer = 2 ** 10
 
     with open(path, "rb") as file:
-        while chunk := file.read(buffer):
-            content += chunk.hex()
+        content = file.read().hex()
 
     return "".join("{}".format(BIN[char]) for char in content)
 
 
+"""
+Initial function
 def write_content(image: Image, index: int, content: str, image_count: int):
     pixels = image.load()
-
+    # peut-etre check ici pour la taille du content
     for b in content:
         if index == X * Y:
             image.save(f"frames/frame{image_count}.png")
@@ -41,6 +42,32 @@ def write_content(image: Image, index: int, content: str, image_count: int):
 
         pixels[index % X, index // X] = 0 if b == '0' else 255
         index += 1
+
+    return image, image_count, index
+"""
+
+
+def write_content(image: Image, index: int, content: str, image_count: int):
+    pixels = image.load()
+
+    if len(content) > index + X * Y:
+        additional_content = content[X * Y - index:]
+        content = content[:X * Y - index]
+
+    x = index % X
+    y = index // X
+
+    for b in content:
+        if x == X:
+            x = 0
+            y += 1
+
+        pixels[x, y] = 0 if b == '0' else 255
+        x += 1
+
+    if "additional_content" in locals().keys():
+        image.save(f"frames/frame{image_count}.png")
+        return write_content(Image.new("1", (X, Y)), 0, additional_content, image_count + 1)
 
     return image, image_count, index
 
@@ -58,6 +85,7 @@ def images2video(num_images: int):
 
 
 def encode_files(files: list[str], title: str):
+    t = time.time()
     if not os.path.isdir("frames"):
         os.mkdir("frames")
 
@@ -65,18 +93,39 @@ def encode_files(files: list[str], title: str):
     index = 0
     image_count = 1
 
+    print("--- INIT %s seconds ---" % (time.time() - t))
+    t = time.time()
+
     for file in files:
         name = str2bin(file)
+        print("--- TRANSFORM NAME %s seconds ---" % (time.time() - t))
+        t = time.time()
         name_size = int2bin(len(name), SIZE_NAME_BITS)
+        print("--- NAME SIZE %s seconds ---" % (time.time() - t))
+        t = time.time()
         image, image_count, index = write_content(image, index, name_size, image_count)
+        print("--- WRITE NAME SIZE %s seconds ---" % (time.time() - t))
+        t = time.time()
         image, image_count, index = write_content(image, index, name, image_count)
+        print("--- WRITE NAME %s seconds ---" % (time.time() - t))
+        t = time.time()
 
         content = get_bits(file)
+        print("--- READ FILE  %s seconds ---" % (time.time() - t))
+        t = time.time()
         content_size = int2bin(len(content), SIZE_CONTENT_BITS)
+        print("--- GET SIZE %s seconds ---" % (time.time() - t))
+        t = time.time()
         image, image_count, index = write_content(image, index, content_size, image_count)
+        print("--- WRITE SIZE  %s seconds ---" % (time.time() - t))
+        t = time.time()
         image, image_count, index = write_content(image, index, content, image_count)
-
-        print(len(content)/8)
+        print("--- WRITE CONTENT %s seconds ---" % (time.time() - t))
+        t = time.time()
 
     image.save(f"frames/frame{image_count}.png")
     images2video(0)
+
+# 1.1981852054595947
+# 0.899057149887085
+# 0.758840799331665
