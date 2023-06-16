@@ -1,5 +1,3 @@
-import time
-
 from PIL import Image
 import cv2
 import os
@@ -80,12 +78,16 @@ def int2bin(val: int, size: int):
     return f"{val:0>{size}b}"
 
 
-def images2video(num_images: int):
-    pass
+def generate_video(num_images: int, title: str):
+    video = cv2.VideoWriter(f"{title}.mp4", 0x7634706d, 1, (X, Y))
+
+    for i in range(num_images):
+        video.write(cv2.imread(f"frames/frame{i + 1}.png"))
+
+    video.release()
 
 
 def encode_files(files: list[str], title: str):
-    t = time.time()
     if not os.path.isdir("frames"):
         os.mkdir("frames")
 
@@ -93,38 +95,19 @@ def encode_files(files: list[str], title: str):
     index = 0
     image_count = 1
 
-    print("--- INIT %s seconds ---" % (time.time() - t))
-    t = time.time()
-
     for file in files:
         name = str2bin(file)
-        print("--- TRANSFORM NAME %s seconds ---" % (time.time() - t))
-        t = time.time()
         name_size = int2bin(len(name), SIZE_NAME_BITS)
-        print("--- NAME SIZE %s seconds ---" % (time.time() - t))
-        t = time.time()
         image, image_count, index = write_content(image, index, name_size, image_count)
-        print("--- WRITE NAME SIZE %s seconds ---" % (time.time() - t))
-        t = time.time()
         image, image_count, index = write_content(image, index, name, image_count)
-        print("--- WRITE NAME %s seconds ---" % (time.time() - t))
-        t = time.time()
 
         content = get_bits(file)
-        print("--- READ FILE  %s seconds ---" % (time.time() - t))
-        t = time.time()
         content_size = int2bin(len(content), SIZE_CONTENT_BITS)
-        print("--- GET SIZE %s seconds ---" % (time.time() - t))
-        t = time.time()
         image, image_count, index = write_content(image, index, content_size, image_count)
-        print("--- WRITE SIZE  %s seconds ---" % (time.time() - t))
-        t = time.time()
         image, image_count, index = write_content(image, index, content, image_count)
-        print("--- WRITE CONTENT %s seconds ---" % (time.time() - t))
-        t = time.time()
 
     image.save(f"frames/frame{image_count}.png")
-    images2video(0)
+    generate_video(image_count, title)
 
 # 1.1981852054595947
 # 0.899057149887085
