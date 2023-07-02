@@ -1,3 +1,5 @@
+import shutil
+
 from PIL import Image
 import cv2
 import os
@@ -48,7 +50,7 @@ def write_content(image: Image, index: int, content: str, image_count: int):
 def write_content(image: Image, index: int, content: str, image_count: int):
     pixels = image.load()
 
-    if len(content) > index + X * Y:
+    if len(content) > X * Y - index:
         additional_content = content[X * Y - index:]
         content = content[:X * Y - index]
 
@@ -67,7 +69,7 @@ def write_content(image: Image, index: int, content: str, image_count: int):
         image.save(f"frames/frame{image_count}.png")
         return write_content(Image.new("1", (X, Y)), 0, additional_content, image_count + 1)
 
-    return image, image_count, index
+    return image, image_count, index + len(content)
 
 
 def str2bin(string: str):
@@ -108,6 +110,7 @@ def encode_files(files: list[str], title: str):
 
     image.save(f"frames/frame{image_count}.png")
     generate_video(image_count, title)
+    shutil.rmtree("frames")
 
 # 1.1981852054595947
 # 0.899057149887085
